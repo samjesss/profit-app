@@ -2,10 +2,12 @@ from supabase import create_client, Client
 import os
 from typing import List, Dict, Any, Optional
 
-# HARDCODED CREDENTIALS (AS REQUESTED BY USER CONTEXT)
-# In a production env, these should be in .env
-SUPABASE_URL = "https://ftotasisodpjxcnyioux.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0b3Rhc2lzb2Rwanhjbnlpb3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3OTQyMjYsImV4cCI6MjA3OTM3MDIyNn0.qMslAGiXDmn6zPA88yp_E9Q8An-qNsG9ilvmXjF31Kk"
+# Load credentials from environment variables
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables must be set")
 
 class DatabaseHandler:
     def __init__(self):
