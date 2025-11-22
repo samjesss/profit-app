@@ -1,11 +1,11 @@
 {
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "https://profit-backend-sfyo.onrender.com/api/$1"
+            "source": "/api/:path*",
+            "destination": "https://profit-backend-sfyo.onrender.com/api/:path*"
         },
         {
-            "source": "/(.*)",
+            "source": "/:path*",
             "destination": "/index.html"
         }
     ]
