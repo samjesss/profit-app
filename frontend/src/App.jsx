@@ -25,7 +25,25 @@ function App() {
     const storedUserId = localStorage.getItem('profit_user_id');
 
     if (storedUsername && storedUserId) {
-      setCurrentUser({ id: parseInt(storedUserId), username: storedUsername });
+      // Verify user still exists in backend
+      api.post('/users', { username: storedUsername })
+        .then(response => {
+          // If successful, user exists (or was re-created if logic allows, but here we just want to confirm access)
+          // Ideally we'd have a GET /users/:id but POST /users is our "login/create" endpoint
+          // which returns the user object.
+          const user = response.data;
+          // Update local storage just in case IDs changed (unlikely but safe)
+          localStorage.setItem('profit_username', user.username);
+          localStorage.setItem('profit_user_id', user.id.toString());
+          setCurrentUser({ id: user.id, username: user.username });
+        })
+        .catch(error => {
+          console.error("Session invalid:", error);
+          // Clear stale data
+          localStorage.removeItem('profit_username');
+          localStorage.removeItem('profit_user_id');
+          setCurrentUser(null);
+        });
     }
   }, []);
 
@@ -214,8 +232,8 @@ function App() {
               <button
                 onClick={() => { setActiveView('dashboard'); setShowOnboarding(false); }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'dashboard' && !showOnboarding
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
               >
                 <LayoutDashboard size={16} />
@@ -224,8 +242,8 @@ function App() {
               <button
                 onClick={() => { setActiveView('transactions'); setShowOnboarding(false); }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'transactions'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
               >
                 <Receipt size={16} />
@@ -234,8 +252,8 @@ function App() {
               <button
                 onClick={() => { setActiveView('goals'); setShowOnboarding(false); }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'goals'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
               >
                 <Target size={16} />
