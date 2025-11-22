@@ -21,9 +21,9 @@ app.add_middleware(
 
 # API Endpoints
 @app.get("/api/transactions", response_model=List[Transaction])
-def get_transactions():
+def get_transactions(usuario: str = None):
     try:
-        return db.get_transactions()
+        return db.get_transactions(usuario=usuario)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

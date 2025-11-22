@@ -12,8 +12,11 @@ class DatabaseHandler:
         self.client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         self.table = "transacciones"
 
-    def get_transactions(self, limit: int = 50) -> List[Dict[str, Any]]:
-        response = self.client.table(self.table).select("*").order("fecha", desc=True).limit(limit).execute()
+    def get_transactions(self, usuario: str = None, limit: int = 50) -> List[Dict[str, Any]]:
+        query = self.client.table(self.table).select("*")
+        if usuario:
+            query = query.eq("usuario", usuario)
+        response = query.order("fecha", desc=True).limit(limit).execute()
         return response.data
 
     def create_transaction(self, data: Dict[str, Any]) -> Dict[str, Any]:
