@@ -26,9 +26,20 @@ class DatabaseHandler:
         existing = self.get_user_by_username(username)
         if existing:
             return existing
-        # Create new user
-        response = self.client.table(self.users_table).insert({"username": username}).execute()
-        return response.data[0] if response.data else {}
+        
+        try:
+            # Create new user
+            response = self.client.table(self.users_table).insert({"username": username}).execute()
+            return response.data[0] if response.data else {}
+        except Exception as e:
+            # If insertion fails (likely unique constraint), try to fetch again
+            # This handles race conditions or check failures
+            print(f"Error creating user (possible duplicate): {e}")
+            existing = self.get_user_by_username(username)
+            if existing:
+                return existing
+            # If still not found, raise the original error
+            raise e
 
     # Transaction methods
     def get_transactions(self, user_id: int = None, limit: int = 50) -> List[Dict[str, Any]]:
