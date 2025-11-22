@@ -42,8 +42,8 @@ function TransactionList({ transactions, onEdit, onDelete }) {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${t.tipo === 'Ingreso'
-                                        ? 'bg-emerald-500/10 text-emerald-400'
-                                        : 'bg-rose-500/10 text-rose-400'
+                                    ? 'bg-emerald-500/10 text-emerald-400'
+                                    : 'bg-rose-500/10 text-rose-400'
                                     }`}>
                                     {t.tipo === 'Ingreso' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                     {t.tipo}
@@ -52,7 +52,7 @@ function TransactionList({ transactions, onEdit, onDelete }) {
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-mono">
                                 <span className={t.tipo === 'Ingreso' ? 'text-emerald-400' : 'text-white'}>
                                     {t.tipo === 'Gasto' && '-'}
-                                    {t.moneda === 'USD' ? '$' : 'C$'} {t.monto.toFixed(2)}
+                                    {t.moneda === 'Dólares' ? '$' : 'C$'} {t.monto.toFixed(2)}
                                 </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm">

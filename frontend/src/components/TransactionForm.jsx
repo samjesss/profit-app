@@ -6,7 +6,7 @@ function TransactionForm({ initialData, onSave, onCancel }) {
         fecha: new Date().toISOString().split('T')[0],
         concepto: '',
         monto: '',
-        moneda: 'NIO',
+        moneda: 'Córdobas',
         tipo: 'Gasto'
     });
 
@@ -92,8 +92,8 @@ function TransactionForm({ initialData, onSave, onCancel }) {
                             onChange={handleChange}
                             className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg focus:ring-2 focus:ring-slate-700 focus:border-transparent outline-none text-white"
                         >
-                            <option value="NIO">NIO</option>
-                            <option value="USD">USD</option>
+                            <option value="Córdobas">Córdobas</option>
+                            <option value="Dólares">Dólares</option>
                         </select>
                     </div>
                 </div>
@@ -105,8 +105,8 @@ function TransactionForm({ initialData, onSave, onCancel }) {
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, tipo: 'Gasto' }))}
                             className={`py-2 rounded-lg text-sm font-medium transition-colors ${formData.tipo === 'Gasto'
-                                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                                    : 'bg-slate-950 text-slate-400 border border-slate-800 hover:border-slate-700'
+                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                : 'bg-slate-950 text-slate-400 border border-slate-800 hover:border-slate-700'
                                 }`}
                         >
                             Gasto
@@ -115,8 +115,8 @@ function TransactionForm({ initialData, onSave, onCancel }) {
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, tipo: 'Ingreso' }))}
                             className={`py-2 rounded-lg text-sm font-medium transition-colors ${formData.tipo === 'Ingreso'
-                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                    : 'bg-slate-950 text-slate-400 border border-slate-800 hover:border-slate-700'
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-slate-950 text-slate-400 border border-slate-800 hover:border-slate-700'
                                 }`}
                         >
                             Ingreso
