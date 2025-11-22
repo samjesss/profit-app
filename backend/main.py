@@ -5,12 +5,12 @@ from fastapi.responses import FileResponse
 from typing import List
 import os
 import sys
-from .models import (
+from backend.models import (
     Transaction, TransactionCreate, TransactionUpdate,
     User, UserCreate,
     SavingsGoal, SavingsGoalCreate, SavingsGoalUpdate
 )
-from .database import db
+from backend.database import db
 
 app = FastAPI(title="Profit API")
 
