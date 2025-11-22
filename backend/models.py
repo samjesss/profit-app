@@ -20,7 +20,7 @@ class TransactionBase(BaseModel):
     fecha: date
     concepto: str
     monto: float
-    moneda: Literal["NIO", "USD"]
+    moneda: Literal["Córdobas", "Dólares"]
     tipo: Literal["Gasto", "Ingreso"]
 
 class TransactionCreate(TransactionBase):
