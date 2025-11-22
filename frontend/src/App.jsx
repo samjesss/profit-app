@@ -6,6 +6,7 @@ import TransactionList from './components/TransactionList';
 import TransactionForm from './components/TransactionForm';
 import GoalsList from './components/GoalsList';
 import GoalForm from './components/GoalForm';
+import Onboarding from './components/Onboarding';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null); // { id, username }
@@ -16,6 +17,7 @@ function App() {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [editingGoal, setEditingGoal] = useState(null);
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'transactions', 'goals'
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Auto-login on mount
   useEffect(() => {
@@ -30,10 +32,25 @@ function App() {
   // Fetch data when user is set
   useEffect(() => {
     if (currentUser) {
-      fetchTransactions();
-      fetchGoals();
+      fetchData();
     }
   }, [currentUser]);
+
+  const fetchData = async () => {
+    await Promise.all([fetchTransactions(), fetchGoals()]);
+  };
+
+  // Check if onboarding should be shown
+  useEffect(() => {
+    if (currentUser && transactions.length === 0 && goals.length === 0) {
+      // Only show if we haven't manually dismissed it in this session
+      if (!sessionStorage.getItem('onboarding_dismissed')) {
+        setShowOnboarding(true);
+      }
+    } else {
+      setShowOnboarding(false);
+    }
+  }, [transactions, goals, currentUser]);
 
   const fetchTransactions = async () => {
     try {
@@ -89,6 +106,7 @@ function App() {
       fetchTransactions();
       setIsTransactionFormOpen(false);
       setEditingTransaction(null);
+      setShowOnboarding(false); // Dismiss onboarding on first action
     } catch (error) {
       console.error("Error saving transaction:", error);
       alert("Error al guardar la transacción");
@@ -122,6 +140,7 @@ function App() {
       fetchGoals();
       setIsGoalFormOpen(false);
       setEditingGoal(null);
+      setShowOnboarding(false); // Dismiss onboarding on first action
     } catch (error) {
       console.error("Error saving goal:", error);
       alert("Error al guardar la meta");
@@ -142,6 +161,11 @@ function App() {
   const handleEditGoal = (goal) => {
     setEditingGoal(goal);
     setIsGoalFormOpen(true);
+  };
+
+  const handleDismissOnboarding = () => {
+    setShowOnboarding(false);
+    sessionStorage.setItem('onboarding_dismissed', 'true');
   };
 
   if (!currentUser) {
@@ -188,8 +212,8 @@ function App() {
             {/* Navigation */}
             <nav className="flex gap-1">
               <button
-                onClick={() => setActiveView('dashboard')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'dashboard'
+                onClick={() => { setActiveView('dashboard'); setShowOnboarding(false); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'dashboard' && !showOnboarding
                     ? 'bg-slate-800 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
@@ -198,7 +222,7 @@ function App() {
                 Dashboard
               </button>
               <button
-                onClick={() => setActiveView('transactions')}
+                onClick={() => { setActiveView('transactions'); setShowOnboarding(false); }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'transactions'
                     ? 'bg-slate-800 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
@@ -208,7 +232,7 @@ function App() {
                 Transacciones
               </button>
               <button
-                onClick={() => setActiveView('goals')}
+                onClick={() => { setActiveView('goals'); setShowOnboarding(false); }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'goals'
                     ? 'bg-slate-800 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
@@ -229,65 +253,81 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {activeView === 'dashboard' && (
+        {showOnboarding ? (
+          <Onboarding
+            onDismiss={handleDismissOnboarding}
+            onStartTransaction={() => {
+              setEditingTransaction(null);
+              setIsTransactionFormOpen(true);
+            }}
+            onStartGoal={() => {
+              setEditingGoal(null);
+              setIsGoalFormOpen(true);
+            }}
+          />
+        ) : (
           <>
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-white">Dashboard</h2>
-              <p className="text-sm text-slate-400 mt-1">Resumen de tu actividad financiera</p>
-            </div>
-            <Dashboard transactions={transactions} goals={goals} />
-          </>
-        )}
+            {activeView === 'dashboard' && (
+              <>
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-white">Dashboard</h2>
+                  <p className="text-sm text-slate-400 mt-1">Resumen de tu actividad financiera</p>
+                </div>
+                <Dashboard transactions={transactions} goals={goals} />
+              </>
+            )}
 
-        {activeView === 'transactions' && (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Tus Transacciones</h2>
-                <p className="text-sm text-slate-400 mt-1">Gestiona tus movimientos financieros</p>
-              </div>
-              <button
-                onClick={() => {
-                  setEditingTransaction(null);
-                  setIsTransactionFormOpen(true);
-                }}
-                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
-              >
-                <Plus size={18} />
-                Nueva Transacción
-              </button>
-            </div>
-            <TransactionList
-              transactions={transactions}
-              onEdit={handleEditTransaction}
-              onDelete={handleDeleteTransaction}
-            />
-          </>
-        )}
+            {activeView === 'transactions' && (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">Tus Transacciones</h2>
+                    <p className="text-sm text-slate-400 mt-1">Gestiona tus movimientos financieros</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingTransaction(null);
+                      setIsTransactionFormOpen(true);
+                    }}
+                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Plus size={18} />
+                    Nueva Transacción
+                  </button>
+                </div>
+                <TransactionList
+                  transactions={transactions}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                />
+              </>
+            )}
 
-        {activeView === 'goals' && (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-white">Metas de Ahorro</h2>
-                <p className="text-sm text-slate-400 mt-1">Planifica y alcanza tus objetivos</p>
-              </div>
-              <button
-                onClick={() => {
-                  setEditingGoal(null);
-                  setIsGoalFormOpen(true);
-                }}
-                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
-              >
-                <Plus size={18} />
-                Nueva Meta
-              </button>
-            </div>
-            <GoalsList
-              goals={goals}
-              onEdit={handleEditGoal}
-              onDelete={handleDeleteGoal}
-            />
+            {activeView === 'goals' && (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">Metas de Ahorro</h2>
+                    <p className="text-sm text-slate-400 mt-1">Planifica y alcanza tus objetivos</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingGoal(null);
+                      setIsGoalFormOpen(true);
+                    }}
+                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Plus size={18} />
+                    Nueva Meta
+                  </button>
+                </div>
+                <GoalsList
+                  goals={goals}
+                  onEdit={handleEditGoal}
+                  onDelete={handleDeleteGoal}
+                />
+              </>
+            )}
           </>
         )}
       </main>
