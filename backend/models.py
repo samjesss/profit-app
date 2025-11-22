@@ -30,7 +30,7 @@ class TransactionUpdate(BaseModel):
     fecha: Optional[date] = None
     concepto: Optional[str] = None
     monto: Optional[float] = None
-    moneda: Optional[Literal["NIO", "USD"]] = None
+    moneda: Optional[Literal["Córdobas", "Dólares"]] = None
     tipo: Optional[Literal["Gasto", "Ingreso"]] = None
 
 class Transaction(TransactionBase):
