@@ -5,12 +5,16 @@ from fastapi.responses import FileResponse
 from typing import List
 import os
 import sys
-from .models import Transaction, TransactionCreate, TransactionUpdate
+from .models import (
+    Transaction, TransactionCreate, TransactionUpdate,
+    User, UserCreate,
+    SavingsGoal, SavingsGoalCreate, SavingsGoalUpdate
+)
 from .database import db
 
 app = FastAPI(title="Profit API")
 
-# Allow CORS for frontend (useful for dev, harmless in prod if local)
+# Allow CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,18 +23,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Endpoints
-@app.get("/api/transactions", response_model=List[Transaction])
-def get_transactions(usuario: str = None):
+# User Endpoints
+@app.post("/api/users", response_model=User)
+def create_or_get_user(user: UserCreate):
+    """Create user if doesn't exist, or return existing user"""
     try:
-        return db.get_transactions(usuario=usuario)
+        result = db.create_user(user.username)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Transaction Endpoints
+@app.get("/api/transactions", response_model=List[Transaction])
+def get_transactions(user_id: int):
+    """Get all transactions for a user"""
+    try:
+        return db.get_transactions(user_id=user_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/transactions", response_model=Transaction)
 def create_transaction(transaction: TransactionCreate):
     try:
-        # mode='json' converts dates to ISO strings, which Supabase expects
         data = transaction.model_dump(mode='json')
         print(f"Creating transaction: {data}")
         result = db.create_transaction(data)
@@ -43,8 +57,6 @@ def create_transaction(transaction: TransactionCreate):
 @app.put("/api/transactions/{uid}", response_model=Transaction)
 def update_transaction(uid: int, transaction: TransactionUpdate):
     try:
-        # Filter out None values
-        # mode='json' handles date serialization
         update_data = {k: v for k, v in transaction.model_dump(mode='json').items() if v is not None}
         print(f"Updating transaction {uid} with: {update_data}")
         if not update_data:
@@ -64,13 +76,47 @@ def delete_transaction(uid: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Savings Goals Endpoints
+@app.get("/api/goals", response_model=List[SavingsGoal])
+def get_goals(user_id: int):
+    """Get all savings goals for a user"""
+    try:
+        return db.get_goals(user_id=user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/goals", response_model=SavingsGoal)
+def create_goal(goal: SavingsGoalCreate):
+    try:
+        data = goal.model_dump(mode='json')
+        result = db.create_goal(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/goals/{goal_id}", response_model=SavingsGoal)
+def update_goal(goal_id: int, goal: SavingsGoalUpdate):
+    try:
+        update_data = {k: v for k, v in goal.model_dump(mode='json').items() if v is not None}
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No data to update")
+        result = db.update_goal(goal_id, update_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/goals/{goal_id}")
+def delete_goal(goal_id: int):
+    try:
+        db.delete_goal(goal_id)
+        return {"message": "Goal deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Serve Static Files (Frontend)
-# Determine path to dist folder (works for dev and PyInstaller)
 if getattr(sys, 'frozen', False):
-    # If running as compiled exe
     base_dir = sys._MEIPASS
 else:
-    # If running as script
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 static_dir = os.path.join(base_dir, "frontend", "dist")

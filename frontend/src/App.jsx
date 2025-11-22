@@ -1,31 +1,44 @@
 import { useState, useEffect } from 'react';
-import { Plus, User, LogOut, LayoutDashboard, Receipt } from 'lucide-react';
+import { Plus, User, LayoutDashboard, Receipt, Target } from 'lucide-react';
 import api from './api';
 import Dashboard from './components/Dashboard';
 import TransactionList from './components/TransactionList';
 import TransactionForm from './components/TransactionForm';
-
-// TODO: Replace with your Power BI embed URL
-const POWER_BI_URL = "https://app.powerbi.com/reportEmbed?reportId=148ed4d7-6026-47ca-a004-0085fbf702da&autoAuth=true&ctid=44d8c9e3-236e-4ca9-88e0-030a91805c44";
+import GoalsList from './components/GoalsList';
+import GoalForm from './components/GoalForm';
 
 function App() {
-  const [user, setUser] = useState(localStorage.getItem('profit_user'));
+  const [currentUser, setCurrentUser] = useState(null); // { id, username }
   const [transactions, setTransactions] = useState([]);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [goals, setGoals] = useState([]);
+  const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false);
+  const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' or 'transactions'
+  const [editingGoal, setEditingGoal] = useState(null);
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'transactions', 'goals'
 
+  // Auto-login on mount
   useEffect(() => {
-    if (user) {
-      fetchTransactions();
+    const storedUsername = localStorage.getItem('profit_username');
+    const storedUserId = localStorage.getItem('profit_user_id');
+
+    if (storedUsername && storedUserId) {
+      setCurrentUser({ id: parseInt(storedUserId), username: storedUsername });
     }
-  }, [user]);
+  }, []);
+
+  // Fetch data when user is set
+  useEffect(() => {
+    if (currentUser) {
+      fetchTransactions();
+      fetchGoals();
+    }
+  }, [currentUser]);
 
   const fetchTransactions = async () => {
     try {
-      // Filter by current user
       const response = await api.get('/transactions', {
-        params: { usuario: user }
+        params: { user_id: currentUser.id }
       });
       setTransactions(response.data);
     } catch (error) {
@@ -33,31 +46,48 @@ function App() {
     }
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const name = e.target.username.value.trim();
-    if (name) {
-      localStorage.setItem('profit_user', name);
-      setUser(name);
+  const fetchGoals = async () => {
+    try {
+      const response = await api.get('/goals', {
+        params: { user_id: currentUser.id }
+      });
+      setGoals(response.data);
+    } catch (error) {
+      console.error("Error fetching goals:", error);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('profit_user');
-    setUser(null);
-    setTransactions([]);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const username = e.target.username.value.trim();
+    if (!username) return;
+
+    try {
+      // Create or get user
+      const response = await api.post('/users', { username });
+      const user = response.data;
+
+      // Save to localStorage
+      localStorage.setItem('profit_username', user.username);
+      localStorage.setItem('profit_user_id', user.id.toString());
+
+      setCurrentUser(user);
+    } catch (error) {
+      console.error("Error creating/getting user:", error);
+      alert("Error al iniciar sesión");
+    }
   };
 
-  const handleSave = async (data) => {
+  const handleSaveTransaction = async (data) => {
     try {
-      const payload = { ...data, usuario: user };
+      const payload = { ...data, user_id: currentUser.id };
       if (editingTransaction) {
-        await api.put(`/transactions/${editingTransaction.id}`, payload);
+        await api.put(`/transactions/${editingTransaction.id}`, data);
       } else {
         await api.post('/transactions', payload);
       }
       fetchTransactions();
-      setIsFormOpen(false);
+      setIsTransactionFormOpen(false);
       setEditingTransaction(null);
     } catch (error) {
       console.error("Error saving transaction:", error);
@@ -65,7 +95,7 @@ function App() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteTransaction = async (id) => {
     if (confirm("¿Estás seguro de eliminar esta transacción?")) {
       try {
         await api.delete(`/transactions/${id}`);
@@ -76,12 +106,45 @@ function App() {
     }
   };
 
-  const handleEdit = (transaction) => {
+  const handleEditTransaction = (transaction) => {
     setEditingTransaction(transaction);
-    setIsFormOpen(true);
+    setIsTransactionFormOpen(true);
   };
 
-  if (!user) {
+  const handleSaveGoal = async (data) => {
+    try {
+      const payload = { ...data, user_id: currentUser.id };
+      if (editingGoal) {
+        await api.put(`/goals/${editingGoal.id}`, data);
+      } else {
+        await api.post('/goals', payload);
+      }
+      fetchGoals();
+      setIsGoalFormOpen(false);
+      setEditingGoal(null);
+    } catch (error) {
+      console.error("Error saving goal:", error);
+      alert("Error al guardar la meta");
+    }
+  };
+
+  const handleDeleteGoal = async (id) => {
+    if (confirm("¿Estás seguro de eliminar esta meta?")) {
+      try {
+        await api.delete(`/goals/${id}`);
+        fetchGoals();
+      } catch (error) {
+        console.error("Error deleting goal:", error);
+      }
+    }
+  };
+
+  const handleEditGoal = (goal) => {
+    setEditingGoal(goal);
+    setIsGoalFormOpen(true);
+  };
+
+  if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-lg shadow-xl w-full max-w-sm">
@@ -127,8 +190,8 @@ function App() {
               <button
                 onClick={() => setActiveView('dashboard')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'dashboard'
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
               >
                 <LayoutDashboard size={16} />
@@ -137,37 +200,46 @@ function App() {
               <button
                 onClick={() => setActiveView('transactions')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'transactions'
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
               >
                 <Receipt size={16} />
                 Transacciones
               </button>
+              <button
+                onClick={() => setActiveView('goals')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeView === 'goals'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
+              >
+                <Target size={16} />
+                Metas
+              </button>
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-lg">
-              <User size={14} />
-              <span>{user}</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              title="Cerrar sesión"
-            >
-              <LogOut size={18} />
-            </button>
+          <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-lg">
+            <User size={14} />
+            <span>{currentUser.username}</span>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {activeView === 'dashboard' ? (
-          <Dashboard powerBiUrl={POWER_BI_URL} />
-        ) : (
+        {activeView === 'dashboard' && (
+          <>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-white">Dashboard</h2>
+              <p className="text-sm text-slate-400 mt-1">Resumen de tu actividad financiera</p>
+            </div>
+            <Dashboard transactions={transactions} goals={goals} />
+          </>
+        )}
+
+        {activeView === 'transactions' && (
           <>
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -177,7 +249,7 @@ function App() {
               <button
                 onClick={() => {
                   setEditingTransaction(null);
-                  setIsFormOpen(true);
+                  setIsTransactionFormOpen(true);
                 }}
                 className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
               >
@@ -185,24 +257,62 @@ function App() {
                 Nueva Transacción
               </button>
             </div>
-
             <TransactionList
               transactions={transactions}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
+              onEdit={handleEditTransaction}
+              onDelete={handleDeleteTransaction}
+            />
+          </>
+        )}
+
+        {activeView === 'goals' && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Metas de Ahorro</h2>
+                <p className="text-sm text-slate-400 mt-1">Planifica y alcanza tus objetivos</p>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingGoal(null);
+                  setIsGoalFormOpen(true);
+                }}
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+              >
+                <Plus size={18} />
+                Nueva Meta
+              </button>
+            </div>
+            <GoalsList
+              goals={goals}
+              onEdit={handleEditGoal}
+              onDelete={handleDeleteGoal}
             />
           </>
         )}
       </main>
 
-      {/* Modal Form */}
-      {isFormOpen && (
+      {/* Transaction Modal */}
+      {isTransactionFormOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="w-full max-w-md">
             <TransactionForm
               initialData={editingTransaction}
-              onSave={handleSave}
-              onCancel={() => setIsFormOpen(false)}
+              onSave={handleSaveTransaction}
+              onCancel={() => setIsTransactionFormOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Goal Modal */}
+      {isGoalFormOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md">
+            <GoalForm
+              initialData={editingGoal}
+              onSave={handleSaveGoal}
+              onCancel={() => setIsGoalFormOpen(false)}
             />
           </div>
         </div>
